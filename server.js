@@ -739,7 +739,11 @@ app.post("/v1/chat/completions", async (req, reply) => {
     reply.raw.end();
   } catch (err) {
     console.error(err);
-    reply.code(500).send({ error: err.message });
+    if (!reply.raw.headersSent) {
+      reply.code(500).send({ error: err.message });
+    } else {
+      reply.raw.end();
+    }
   }
 });
 
