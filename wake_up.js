@@ -591,18 +591,26 @@ ${historyText}`
     }
   }
 
-  try {
-    const eventResponse = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: eventContent })
-    });
-    if (!eventResponse.ok) {
-      throw new Error(`Gateway 返回 HTTP ${eventResponse.status}`);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const eventResponse = await fetch(GATEWAY_URL, {
+        method: "POST",
+        signal: AbortSignal.timeout(10_000),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: eventContent })
+      });
+      if (!eventResponse.ok) {
+        throw new Error(`Gateway 返回 HTTP ${eventResponse.status}`);
+      }
+      console.log("\n已通过 Gateway 记录唤醒事件\n");
+      break;
+    } catch (err) {
+      console.error(`\n记录唤醒事件失败（第${attempt}次）:\n`, err.message);
+      if (attempt < 3) {
+        console.log(`等待 ${attempt * 3} 秒后重试...`);
+        await new Promise(r => setTimeout(r, attempt * 3000));
+      }
     }
-    console.log("\n已通过 Gateway 记录唤醒事件\n");
-  } catch (err) {
-    console.error("\n记录唤醒事件失败（Gateway 是否运行？）:\n", err.message);
   }
 }
 
